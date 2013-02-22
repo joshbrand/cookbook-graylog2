@@ -19,9 +19,7 @@
 
 # Install required APT packages
 package "build-essential"
-if node.graylog2.email_package
-    package node.graylog2.email_package
-end
+package "postfix"
 
 # Install gem dependencies
 gem_package "bundler"
@@ -36,7 +34,7 @@ end
 # Download the desired version of Graylog2 web interface from GitHub
 remote_file "download_web_interface" do
   path "#{node.graylog2.basedir}/rel/graylog2-web-interface-#{node.graylog2.web_interface.version}.tar.gz"
-  source "https://github.com/downloads/Graylog2/graylog2-web-interface/graylog2-web-interface-#{node.graylog2.web_interface.version}.tar.gz"
+  source "http://download.graylog2.org/graylog2-web-interface/graylog2-web-interface-#{node.graylog2.web_interface.version}.tar.gz"
   action :create_if_missing
 end
 
@@ -65,18 +63,11 @@ template "#{node.graylog2.basedir}/web/config/mongoid.yml" do
   mode 0644
 end
 
-external_hostname = node.graylog2.external_hostname     ? node.graylog2.external_hostname :
-    (node.has_key?('ec2') and node.ec2.has_key?('public_hostname')) ? node.ec2.public_hostname :
-    (node.has_key?('ec2') and node.ec2.has_key?('public_ipv4'))     ? node.ec2.public_ipv4 :
-    node.has_key?('fqdn')                                           ? node.fqdn :
-    "localhost"
-
 # Create general.yml
 template "#{node.graylog2.basedir}/web/config/general.yml" do
   owner "nobody"
   group "nogroup"
   mode 0644
-  variables( :external_hostname => external_hostname )
 end
 
 # Chown the Graylog2 directory to nobody/nogroup to allow web servers to serve it
@@ -91,13 +82,13 @@ end
 
 # Stream message rake tasks
 cron "Graylog2 send stream alarms" do
-  minute node.graylog2.stream_alarms_cron_minute
-  action node.graylog2.send_stream_alarms ? :create : :delete
-  command "cd #{node.graylog2.basedir}/web && RAILS_ENV=production bundle exec rake streamalarms:send"
+  minute node[:graylog2][:stream_alarms_cron_minute]
+  action node[:graylog2][:send_stream_alarms] ? :create : :delete
+  command "cd #{node[:graylog2][:basedir]}/web && RAILS_ENV=production bundle exec rake streamalarms:send"
 end
 
 cron "Graylog2 send stream subscriptions" do
-  minute node.graylog2.stream_subscriptions_cron_minute
-  action node.graylog2.send_stream_subscriptions ? :create : :delete
-  command "cd #{node.graylog2.basedir}/web && RAILS_ENV=production bundle exec rake subscriptions:send"
+  minute node[:graylog2][:stream_subscriptions_cron_minute]
+  action node[:graylog2][:send_stream_subscriptions] ? :create : :delete
+  command "cd #{node[:graylog2][:basedir]}/web && RAILS_ENV=production bundle exec rake subscriptions:send"
 end
