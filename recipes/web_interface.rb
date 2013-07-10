@@ -98,6 +98,9 @@ secret = Chef::ShellOut.new("rake", "secret", :cwd => "#{node[:graylog2][:basedi
 secret.run_command
 token = secret.stdout.strip
 template "#{node[:graylog2][:basedir]}/web/config/initializers/secret_token.rb" do
+  owner "nobody"
+  group "nogroup"
+  mode 0600
   variables( :secret_token => token )
 end
 
