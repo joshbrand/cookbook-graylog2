@@ -93,6 +93,14 @@ end
   end
 end
 
+# create secret token
+secret = Chef::ShellOut.new("rake", "secret", :cwd => "#{node[:graylog2][:basedir]}/web")
+secret.run_command
+token = secret.stdout.strip
+template "#{node[:graylog2][:basedir]}/web/config/initializers/secret_token.rb" do
+  variables( :secret_token => token )
+end
+
 # Chown the Graylog2 directory to nobody/nogroup to allow web servers to serve it
 execute "sudo chown -R nobody:nogroup graylog2-web-interface-#{node[:graylog2][:web_interface][:version]}" do
   cwd "#{node[:graylog2][:basedir]}/rel"
